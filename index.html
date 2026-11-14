@@ -217,8 +217,8 @@
 
             // 【追加】クリックされたボタンを即座に無効化し、色をグレーにして連打を防ぐ
             event.target.style.pointerEvents = 'none';
-            event.target.style.backgroundColor = '#ccc';
-            event.target.innerText = 'クリック済み';
+            event.target.style.backgroundColor = '#555';
+            event.target.innerText = '詳細を確認しました';
 
             // データの送信フォームをJavaScript上で仮想的に組み立てる
             const formData = new FormData();
@@ -232,7 +232,7 @@
                 mode: "no-cors" // Google側からの返答を無視してエラーを回避する設定
             }).then(() => {
                 console.log("ログ送信完了:", conditionId);
-                alert("「詳しくはこちら」がクリックされました（データロギング成功）");
+                // alert("「詳しくはこちら」がクリックされました（データロギング成功）");
             }).catch((err) => {
                 console.error("ログ送信失敗:", err);
             });
