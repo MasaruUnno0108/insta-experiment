@@ -1,0 +1,244 @@
+/* インスタグラム広告効果シミュレーション */
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instagram Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+        }
+
+        /* 縦スワイプのコンテナ */
+        .feed-container {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 各投稿・広告のセクション */
+        .feed-item {
+            width: 100%;
+            height: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        .feed-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* インスタ風のオーバーレイUI情報 */
+        .ui-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #bbb;
+            margin-right: 10px;
+        }
+
+        .username {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .badge-ad {
+            font-size: 10px;
+            background-color: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .caption {
+            font-size: 14px;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 広告用の「詳しくはこちら」ボタン */
+        .ad-button {
+            width: 100%;
+            background-color: #0095f6;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 14px;
+            pointer-events: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="feed-container" id="feedContainer"></div>
+
+    <script>
+        // 【設定項目】先ほどGoogleフォームで取得したURLとentry IDに書き換えてください
+        const GOOGLE_FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfrYf3ciJ94GX1SL4iPdK7ks0-4YAQjmm1M-rhQTixKMgQ_Qg/formResponse";
+        // const GOOGLE_FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSxxxx/formResponse"; // 末尾をformResponseにする
+        const FORM_ENTRY_USER_ID     = "entry.496357958"; // ユーザーIDのentry名
+        const FORM_ENTRY_CONDITION   = "entry.1143261138"; // 条件IDのentry名
+
+        // 後半のアンケート（Googleフォーム後半）のベースURL
+        const NEXT_GOOGLE_FORM_URL   = "https://docs.google.com/forms/d/e/1FAIpQLSdIoqh8BHxyg89RFtEFRJVUok8P91WNOMIUFa-KyyiFlR9tWA/viewform";
+        // const NEXT_GOOGLE_FORM_URL   = "https://docs.google.com/forms/d/e/後半フォームのID/viewform";
+        const NEXT_FORM_ENTRY_USER_ID = "entry.1416060244"; // 後半フォーム側でユーザーIDを受け取る記述式のentry名
+
+        // 1. URLのパラメータから被験者ID（?id=xxx）を自動取得する関数
+        function getUserIdFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            // もしURLに「?id=user123」が入っていればそれを返し、無ければ「respondent（回答者）」にする
+            return params.get('id') || 'respondent_' + Math.floor(Math.random() * 1000);
+        }
+
+        const currentUserId = getUserIdFromURL();
+        console.log("現在の被験者ID:", currentUserId);
+
+        // 素材データの定義
+        const posts = {
+            beauty: { img: "images/post_beauty.png", user: "beauty_style_tokyo", caption: "最近お気に入りのスキンケアルーティン。毎日のケアがこれからの肌につながると思って、保湿をいちばん大事にしています。 #スキンケア #メンズ美容" },
+            game: { img: "images/post_game.png", user: "pad_lifestyle", caption: "大学の課題がひと段落したので、友達とVALORANT。最後のラウンドで連携がはまって逆転できたの、気持ちよかった! 結局「もう1戦」ってなる。 #VALORANT #ゲーム好き" }
+        };
+
+        const ads = {
+            logical: { img: "images/ad_logical.jpg", caption: "【医療用レベルの保水成分配合】乾燥肌のバリア機能を根本から整える、低刺激ロジックのボディクリーム。" },
+            emotional: { img: "images/ad_emotional.jpg", caption: "【触れたくなる素肌へ】カサつく肌のストレスから解放。心地よい潤いで、毎日の自分にもっと自信を。" }
+        };
+
+        // 4つの実験条件のペア定義
+        const conditions = [
+            { id: "Logical_Fit",      post: posts.beauty, ad: ads.logical },
+            { id: "Emotional_Fit",    post: posts.beauty, ad: ads.emotional },
+            { id: "Logical_NonFit",   post: posts.game, ad: ads.logical },
+            { id: "Emotional_NonFit", post: posts.game, ad: ads.emotional }
+        ];
+
+        // フィッシャー・イェーツのシャッフル
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 画面の動的生成
+        function renderFeed() {
+            const container = document.getElementById('feedContainer');
+            const shuffledConditions = shuffle([...conditions]);
+
+            shuffledConditions.forEach((cond) => {
+                // 投稿のHTML生成
+                const postHTML = `
+                    <div class="feed-item">
+                        <img class="feed-image" src="${cond.post.img}" alt="投稿">
+                        <div class="ui-overlay">
+                            <div class="user-info"><div class="avatar"></div><span class="username">${cond.post.user}</span></div>
+                            <p class="caption">${cond.post.caption}</p>
+                        </div>
+                    </div>
+                `;
+
+                // 広告のHTML生成
+                const adHTML = `
+                    <div class="feed-item">
+                        <img class="feed-image" src="${cond.ad.img}" alt="広告">
+                        <div class="ui-overlay">
+                            <a href="#" class="ad-button" onclick="logClick(event, '${cond.id}')">詳しくはこちら</a>
+                            <div class="user-info"><div class="avatar"></div><span class="username">mens_skin_lab</span><span class="badge-ad">広告</span></div>
+                            <p class="caption">${cond.ad.caption}</p>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += postHTML + adHTML;
+            });
+
+            // 【追加】タイムラインの一番最後に、後半アンケートへ誘導する画面を1枚追加する
+            const finalUrl = `${NEXT_GOOGLE_FORM_URL}?${NEXT_FORM_ENTRY_USER_ID}=${currentUserId}`;
+            const finalScreenHTML = `
+                <div class="feed-item" style="background-color: #111;">
+                    <div style="text-align: center; color: white; padding: 20px;">
+                        <h3 style="margin-bottom: 20px;">ご協力ありがとうございました</h3>
+                        <p style="margin-bottom: 30px; font-size: 14px; color: #aaa;">全てのコンテンツの閲覧が終了しました。<br>最後に、広告の印象に関する短いアンケートにお答えください。</p>
+                        <a href="${finalUrl}" style="display: inline-block; background-color: #3897f0; color: white; padding: 12px 30px; border-radius: 4px; font-weight: bold; text-decoration: none;">後半のアンケートへ進む</a>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += finalScreenHTML;
+        }
+
+        // 【大幅改修】広告クリック時のバックグラウンドデータ送信処理
+        function logClick(event, conditionId) {
+            event.preventDefault(); // 画面遷移やリロードを一旦止める
+
+            // 【追加】クリックされたボタンを即座に無効化し、色をグレーにして連打を防ぐ
+            event.target.style.pointerEvents = 'none';
+            event.target.style.backgroundColor = '#ccc';
+            event.target.innerText = 'クリック済み';
+
+            // データの送信フォームをJavaScript上で仮想的に組み立てる
+            const formData = new FormData();
+            formData.append(FORM_ENTRY_USER_ID, currentUserId);
+            formData.append(FORM_ENTRY_CONDITION, conditionId);
+
+            // fetch機能を使って、被験者に気づかれずに裏側（非同期）でGoogleフォームにデータを送信
+            fetch(GOOGLE_FORM_ACTION_URL, {
+                method: "POST",
+                body: formData,
+                mode: "no-cors" // Google側からの返答を無視してエラーを回避する設定
+            }).then(() => {
+                console.log("ログ送信完了:", conditionId);
+                alert("「詳しくはこちら」がクリックされました（データロギング成功）");
+            }).catch((err) => {
+                console.error("ログ送信失敗:", err);
+            });
+        }
+
+        window.onload = renderFeed;
+    </script>
+</body>
+</html>

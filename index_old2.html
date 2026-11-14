@@ -1,0 +1,212 @@
+/* インスタグラム広告効果シミュレーション */
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instagram Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+        }
+
+        /* 縦スワイプのコンテナ */
+        .feed-container {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 各投稿・広告のセクション */
+        .feed-item {
+            width: 100%;
+            height: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        .feed-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* インスタ風のオーバーレイUI情報 */
+        .ui-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #bbb;
+            margin-right: 10px;
+        }
+
+        .username {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .badge-ad {
+            font-size: 10px;
+            background-color: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .caption {
+            font-size: 14px;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 広告用の「詳しくはこちら」ボタン */
+        .ad-button {
+            width: 100%;
+            background-color: #0095f6;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 14px;
+            pointer-events: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="feed-container" id="feedContainer"></div>
+
+    <script>
+        // 1. 各種パーツ（素材データ）の定義
+        const posts = {
+            beauty: {
+                img: "images/post_beauty.jpg",
+                user: "beauty_style_tokyo",
+                caption: "最近お気に入りのスキンケアルーティン。毎日のケアが未来の肌を作ります。保湿が何より大事！ #スキンケア #メンズ美容"
+            },
+            gadget: {
+                img: "images/post_gadget.jpg",
+                user: "pad_lifestyle",
+                caption: "大学の講義ノートは全部iPadで一元管理しています。おすすめのノートアプリ5選をブログで紹介中。 #iPad #ガジェット"
+            }
+        };
+
+        const ads = {
+            logical: {
+                img: "images/ad_logical.jpg",
+                caption: "【医療用レベルの保水成分配合】乾燥肌のバリア機能を根本から整える、低刺激ロジックのボディクリーム。"
+            },
+            emotional: {
+                img: "images/ad_emotional.jpg",
+                caption: "【触れたくなる素肌へ】カサつく肌のストレスから解放。心地よい潤いで、毎日の自分にもっと自信を。"
+            }
+        };
+
+        // 2. 4つの条件（セル）を「投稿 → 広告」のペアとして定義
+        const conditions = [
+            { id: "Logical_Fit",      post: posts.beauty, ad: ads.logical },   // 適合 × ロジカル
+            { id: "Emotional_Fit",    post: posts.beauty, ad: ads.emotional }, // 適合 × 情緒
+            { id: "Logical_NonFit",   post: posts.gadget, ad: ads.logical },   // 不適合 × ロジカル
+            { id: "Emotional_NonFit", post: posts.gadget, ad: ads.emotional }  // 不適合 × 情緒
+        ];
+
+        // 3. 配列をランダムにシャッフルする関数 (Fisher-Yatesシャッフル)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 4. 画面（HTML）を動的に組み立てる処理
+        function renderFeed() {
+            const container = document.getElementById('feedContainer');
+            const shuffledConditions = shuffle([...conditions]); // 4つのペアをランダム順に
+
+            shuffledConditions.forEach((cond) => {
+                // 4.1 まず直前の投稿（コンテキスト）を作成
+                const postHTML = `
+                    <div class="feed-item">
+                        <img class="feed-image" src="${cond.post.img}" alt="投稿">
+                        <div class="ui-overlay">
+                            <div class="user-info">
+                                <div class="avatar"></div>
+                                <span class="username">${cond.post.user}</span>
+                            </div>
+                            <p class="caption">${cond.post.caption}</p>
+                        </div>
+                    </div>
+                `;
+
+                // 4.2 次にターゲットとなる広告を作成
+                const adHTML = `
+                    <div class="feed-item">
+                        <img class="feed-image" src="${cond.ad.img}" alt="広告">
+                        <div class="ui-overlay">
+                            <a href="#" class="ad-button" onclick="logClick('${cond.id}')">詳しくはこちら</a>
+                            <div class="user-info">
+                                <div class="avatar"></div>
+                                <span class="username">mens_skin_lab</span>
+                                <span class="badge-ad">広告</span>
+                            </div>
+                            <p class="caption">${cond.ad.caption}</p>
+                        </div>
+                    </div>
+                `;
+
+                // コンテナに追加（投稿 → 広告 の順で連続して並ぶ）
+                container.innerHTML += postHTML + adHTML;
+            });
+        }
+
+        // 広告クリック時のログ関数
+        function logClick(conditionId) {
+            alert(conditionId + " の広告がクリックされました！");
+        }
+
+        // ページ読み込み時に実行
+        window.onload = renderFeed;
+    </script>
+</body>
+</html>

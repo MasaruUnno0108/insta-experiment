@@ -1,0 +1,184 @@
+/* インスタグラム広告効果シミュレーション */
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instagram Simulator</title>
+    <style>
+        /* 全体リセット：スマホのスクロールバウンスを防ぐ */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000; /* インスタの動画/リール風に背景を黒に */
+        }
+
+        /* 縦スワイプのコンテナ（スクロールスナップを有効化） */
+        .feed-container {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 各投稿・広告のセクション */
+        .feed-item {
+            width: 100%;
+            height: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        /* メイン画像（画面いっぱいに表示、アスペクト比維持） */
+        .feed-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 画像全体が見えるように配置 */
+        }
+
+        /* インスタ風のオーバーレイUI情報（アカウント名、キャプションなど） */
+        /* 変更：下からの固定位置ではなく、UI全体のコンテナにする */
+        .ui-overlay {
+            position: absolute;
+            bottom: 20px; /* 画面の一番下からの余白 */
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: #fff;
+            display: flex;
+            flex-direction: column; /* 上から順に要素を並べる */
+            pointer-events: none; /* 下の要素の邪魔をしない */
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #bbb;
+            margin-right: 10px;
+        }
+
+        .username {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .badge-ad {
+            font-size: 10px;
+            background-color: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .caption {
+            font-size: 14px;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 広告用の「詳しくはこちら」ボタン（これ自体を仮のCV計測ボタンにできる） */
+        /* 変更：ボタンをoverlayコンテナの中の「一番上」に配置する */
+        .ad-button {
+            /*position: absolute; */
+            /*bottom: 120px; */
+            /*left: 5%; */
+            width: 100%;
+            background-color: #0095f6;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 14px;
+            pointer-events: auto; /* クリック可能に */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-bottom: 15px; /* ボタンの下に隙間を作って文字と離す */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="feed-container">
+
+        <div class="feed-item">
+            <img class="feed-image" src="images/post_beauty.jpg" alt="美容系投稿">
+            <div class="ui-overlay">
+                <div class="user-info">
+                    <div class="avatar"></div>
+                    <span class="username">beauty_style_tokyo</span>
+                </div>
+                <p class="caption">最近お気に入りのスキンケアルーティン。毎日のケアが未来の肌を作ります。保湿が何より大事！ #スキンケア #メンズ美容</p>
+            </div>
+        </div>
+
+        <div class="feed-item">
+            <img class="feed-image" src="images/ad_logical.jpg" alt="ロジカル広告">
+            <div class="ui-overlay">
+                <a href="#" class="ad-button" onclick="logClick('Logical_Fit')">詳しくはこちら</a>
+                <div class="user-info">
+                    <div class="avatar"></div>
+                    <span class="username">mens_skin_lab</span>
+                    <span class="badge-ad">広告</span>
+                </div>
+                <p class="caption">【医療用レベルの保水成分配合】乾燥肌のバリア機能を根本から整える、低刺激ロジックのボディクリーム。</p>
+            </div>
+        </div>
+
+        <div class="feed-item">
+            <img class="feed-image" src="images/post_gadget.jpg" alt="ガジェット系投稿">
+            <div class="ui-overlay">
+                <div class="user-info">
+                    <div class="avatar"></div>
+                    <span class="username">pad_lifestyle</span>
+                </div>
+                <p class="caption">大学の講義ノートは全部iPadで一元管理しています。おすすめのノートアプリ5選をブログで紹介中。 #iPad #ガジェット #大学生の日常</p>
+            </div>
+        </div>
+
+        <div class="feed-item">
+            <img class="feed-image" src="images/ad_emotional.jpg" alt="情緒広告">
+            <div class="ui-overlay">
+                <a href="#" class="ad-button" onclick="logClick('Emotional_NonFit')">詳しくはこちら</a>
+                <div class="user-info">
+                    <div class="avatar"></div>
+                    <span class="username">mens_skin_lab</span>
+                    <span class="badge-ad">広告</span>
+                </div>
+                <p class="caption">【触れたくなる素肌へ】カサつく肌のストレスから解放。心地よい潤いで、毎日の自分にもっと自信を。</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ボタンがクリックされたときの処理（簡易的なログ。後ほどデータ保存処理を検討）
+        function logClick(condition) {
+            alert(condition + " の広告がクリックされました！（実験用のログ確認）");
+            // 将来的には、ここでGoogleフォームやAPIにデータを送信する処理を書きます。
+        }
+    </script>
+</body>
+</html>
