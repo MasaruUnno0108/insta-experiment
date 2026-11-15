@@ -1,163 +1,459 @@
-/* インスタグラム広告効果シミュレーション */
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Instagram Simulator</title>
+    <title>SNSコンテンツに関する調査</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
+            width: 100%; height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #000;
+            background-color: #f5f7fa; color: #333;
+        }
+        .screen { display: none; width: 100%; height: 100%; }
+        .screen.active { display: block; }
+
+        /* アンケート画面のスタイル */
+        .survey-screen { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 16px 60px; }
+        .survey-container { max-width: 540px; margin: 0 auto; }
+        .survey-header {
+            background: #fff; padding: 20px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; border-top: 6px solid #0095f6;
+        }
+        .survey-header h2 { font-size: 18px; margin-bottom: 8px; color: #111; }
+        .survey-header p { font-size: 13px; color: #666; line-height: 1.5; white-space: pre-line; }
+
+        /* 質問途中の説明文（info）カードのスタイル */
+        .info-card {
+            background: #eef6ff; padding: 14px 16px; border-radius: 10px;
+            margin: 22px 0 14px; border-left: 4px solid #0095f6;
+            font-size: 13px; color: #1f2d3d; line-height: 1.6; font-weight: 500;
+            white-space: pre-line;
         }
 
-        /* 縦スワイプのコンテナ */
+        .question-card {
+            background: #fff; padding: 18px; border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 16px;
+        }
+        .question-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
+        .badge-req {
+            background-color: #ff4d4f; color: #fff; font-size: 10px;
+            padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle;
+        }
+        .badge-opt {
+            background-color: #8c8c8c; color: #fff; font-size: 10px;
+            padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle;
+        }
+
+        /* 単一回答（ラジオ）・複数回答（チェックボックス） */
+        .option-list label {
+            display: flex; align-items: center; padding: 10px 12px;
+            border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 8px;
+            font-size: 14px; cursor: pointer; transition: background 0.15s;
+        }
+        .option-list label:hover { background-color: #f9fbfd; }
+        .option-list input { margin-right: 10px; transform: scale(1.2); }
+
+        /* 5段階リッカート尺度 */
+        .likert-scale { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
+        .likert-option { flex: 1; text-align: center; }
+        .likert-option input[type="radio"] { display: none; }
+        .likert-option span {
+            display: block; padding: 10px 4px; border: 1px solid #d9d9d9;
+            border-radius: 8px; font-size: 13px; background: #fafafa; color: #555; cursor: pointer;
+        }
+        .likert-option input[type="radio"]:checked + span {
+            background-color: #0095f6; color: #fff; border-color: #0095f6; font-weight: bold;
+        }
+        .likert-labels {
+            display: flex; justify-content: space-between; font-size: 11px;
+            color: #888; margin-top: 6px; padding: 0 2px;
+        }
+
+        /* 自由記述（1行・複数行） */
+        .text-input, .textarea-input {
+            width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9;
+            border-radius: 8px; font-size: 14px; font-family: inherit;
+        }
+        .textarea-input { min-height: 90px; resize: vertical; }
+
+        /* 広告プレビュー枠 */
+        .ad-preview-card {
+            background: #eef6ff; padding: 16px; border-radius: 12px;
+            margin: 24px 0 14px; border-left: 5px solid #0095f6;
+        }
+        .ad-preview-header { font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #0050b3; }
+        .ad-preview-box { display: flex; align-items: center; background: #fff; padding: 10px; border-radius: 8px; }
+        .ad-preview-box img {
+            width: 64px; height: 64px; object-fit: cover; border-radius: 6px;
+            margin-right: 12px; flex-shrink: 0; background: #000;
+        }
+        .ad-preview-text { font-size: 12px; color: #333; line-height: 1.4; }
+
+        .submit-btn {
+            width: 100%; background-color: #0095f6; color: #fff; border: none;
+            padding: 15px; border-radius: 10px; font-size: 16px; font-weight: bold;
+            cursor: pointer; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,149,246,0.3);
+        }
+        .submit-btn:disabled { background-color: #aaa; }
+
+        /* 疑似インスタ画面のスタイル */
+        .feed-screen { background-color: #000; overflow: hidden; }
         .feed-container {
-            width: 100%;
-            height: 100%;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            -webkit-overflow-scrolling: touch;
+            width: 100%; height: 100%; overflow-y: scroll;
+            scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch;
         }
-
-        /* 各投稿・広告のセクション */
         .feed-item {
-            width: 100%;
-            height: 100%;
-            scroll-snap-align: start;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
+            width: 100%; height: 100%; scroll-snap-align: start; position: relative;
+            display: flex; justify-content: center; align-items: center; background-color: #000;
         }
-
-        .feed-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        /* インスタ風のオーバーレイUI情報 */
+        .feed-image { width: 100%; height: 100%; object-fit: contain; }
         .ui-overlay {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            padding: 20px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            pointer-events: none;
+            position: absolute; bottom: 20px; left: 0; width: 100%; padding: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.85)); color: #fff;
+            display: flex; flex-direction: column; pointer-events: none;
         }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-color: #bbb;
-            margin-right: 10px;
-        }
-
-        .username {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .badge-ad {
-            font-size: 10px;
-            background-color: rgba(255,255,255,0.2);
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 8px;
-        }
-
-        .caption {
-            font-size: 14px;
-            line-height: 1.4;
-            max-height: 60px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* 広告用の「詳しくはこちら」ボタン */
+        .user-info { display: flex; align-items: center; margin-bottom: 8px; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background-color: #bbb; margin-right: 10px; }
+        .username { font-weight: 600; font-size: 14px; }
+        .badge-ad { font-size: 10px; background-color: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+        .caption { font-size: 14px; line-height: 1.4; max-height: 80px; overflow: hidden; text-overflow: ellipsis; }
         .ad-button {
-            width: 100%;
-            background-color: #0095f6;
-            color: white;
-            text-align: center;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            text-decoration: none;
-            font-size: 14px;
-            pointer-events: auto;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            margin-bottom: 15px;
+            width: 100%; background-color: #0095f6; color: white; text-align: center;
+            padding: 12px; border-radius: 8px; font-weight: bold; text-decoration: none;
+            font-size: 14px; pointer-events: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
 
-    <div class="feed-container" id="feedContainer"></div>
+    <!-- 画面1：事前アンケート -->
+    <div id="screenPre" class="screen survey-screen active">
+        <div class="survey-container">
+            <div class="survey-header">
+                <h2 id="preTitle"></h2>
+                <p id="preDescription"></p>
+            </div>
+            <form id="preForm" onsubmit="handlePreSubmit(event)">
+                <div id="preQuestionsContainer"></div>
+                <button type="submit" class="submit-btn" id="preSubmitBtn"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 画面2：疑似Instagramフィード -->
+    <div id="screenFeed" class="screen feed-screen">
+        <div class="feed-container" id="feedContainer"></div>
+    </div>
+
+    <!-- 画面3：事後アンケート -->
+    <div id="screenPost" class="screen survey-screen">
+        <div class="survey-container">
+            <div class="survey-header">
+                <h2 id="postTitle"></h2>
+                <p id="postDescription"></p>
+            </div>
+            <form id="postForm" onsubmit="handlePostSubmit(event)">
+                <div id="postQuestionsContainer"></div>
+                <button type="submit" class="submit-btn" id="postSubmitBtn"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 画面4：完了画面 -->
+    <div id="screenThanks" class="screen survey-screen">
+        <div class="survey-container">
+            <div class="survey-header" style="text-align: center; padding: 40px 20px;">
+                <h2 id="thanksTitle" style="margin-bottom: 16px;"></h2>
+                <p id="thanksDescription"></p>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // 【設定項目】先ほどGoogleフォームで取得したURLとentry IDに書き換えてください
-        const GOOGLE_FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfrYf3ciJ94GX1SL4iPdK7ks0-4YAQjmm1M-rhQTixKMgQ_Qg/formResponse";
-        // const GOOGLE_FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSxxxx/formResponse"; // 末尾をformResponseにする
-        const FORM_ENTRY_USER_ID     = "entry.496357958"; // ユーザーIDのentry名
-        const FORM_ENTRY_CONDITION   = "entry.1143261138"; // 条件IDのentry名
+        // =========================================================================
+        // ★★★ 簡易データベース（設定テーブル）エリア ★★★
+        // =========================================================================
+        const SURVEY_DB = {
+            // 1. 保存先スプレッドシート（Apps Script）のURL
+            apiUrl: "https://script.google.com/macros/s/AKfycbzeS40AphEbV8IlRhd3H6f5yrtEkJf0-X6WGWzjeHp1OJZj-82I3iMMAlI3meFUc9GK/exec",
 
-        // 後半のアンケート（Googleフォーム後半）のベースURL
-        const NEXT_GOOGLE_FORM_URL   = "https://docs.google.com/forms/d/e/1FAIpQLSdIoqh8BHxyg89RFtEFRJVUok8P91WNOMIUFa-KyyiFlR9tWA/viewform";
-        // const NEXT_GOOGLE_FORM_URL   = "https://docs.google.com/forms/d/e/後半フォームのID/viewform";
-        const NEXT_FORM_ENTRY_USER_ID = "entry.1416060244"; // 後半フォーム側でユーザーIDを受け取る記述式のentry名
+            // 2. 各画面のタイトル・冒頭説明文・ボタン文字の設定
+            meta: {
+                preTitle: "SNSコンテンツに関するアンケート（前半）",
+                preDescription: "以下の質問にお答えいただいた後、実際のSNSを模した画面を閲覧していただきます（所要時間：約3分）。",
+                preButtonText: "次へ（SNS画面の閲覧へ進む）",
 
-        // 1. URLのパラメータから被験者ID（?id=xxx）を自動取得する関数
-        function getUserIdFromURL() {
-            const params = new URLSearchParams(window.location.search);
-            // もしURLに「?id=user123」が入っていればそれを返し、無ければ「respondent（回答者）」にする
-            return params.get('id') || 'respondent_' + Math.floor(Math.random() * 1000);
+                postTitle: "表示された広告に関するアンケート（後半）",
+                postDescription: "先ほど画面に表示された2つのボディクリームの広告について、あなたの率直な印象をお答えください。",
+                postButtonText: "回答を送信して終了する",
+
+                thanksTitle: "調査が完了しました",
+                thanksDescription: "回答データが正常に送信されました。\nご協力いただき、誠にありがとうございました。\nこのままブラウザを閉じて終了してください。"
+            },
+
+            // 3. SNS投稿データのテーブル
+            posts: {
+                beauty: {
+                    img: "images/post_beauty.png",
+                    user: "beauty_style_tokyo",
+                    caption: "最近お気に入りのスキンケアルーティン。毎日のケアがこれからの肌につながると思って、保湿をいちばん大事にしています。 #スキンケア #メンズ美容"
+                },
+                game: {
+                    img: "images/post_game.jpg",
+                    user: "valo_campus_life",
+                    caption: "大学の課題がひと段落したので、友達とVALORANT。最後のラウンドで連携がはまって逆転できたの、気持ちよかった! 結局「もう1戦」ってなる。 #VALORANT #ゲーム好き"
+                }
+            },
+
+            // 4. 広告データのテーブル
+            ads: {
+                logical: {
+                    type: "logical",
+                    img: "images/ad_logical.jpg",
+                    caption: "【医療用レベルの2つの保湿成分配合】乾燥肌のバリア機能を根本から整える、速乾性でベタつかないボディクリーム。"
+                },
+                emotional: {
+                    type: "emotional",
+                    img: "images/ad_emotional.jpg",
+                    caption: "【自分らしく過ごす毎日へ】カサつく肌のストレスから解放。乾燥を気にせず、自由でアクティブな毎日に。"
+                }
+            },
+
+            // =====================================================================
+            // 5. 前半アンケートの質問テーブル
+            //   type: "info"(説明文) | "radio"(単一) | "checkbox"(複数) | "likert"(5段階) | "text"(1行) | "textarea"(長文)
+            // =====================================================================
+            preQuestions: [
+                {
+                    id: "gender",
+                    title: "Q1. あなたの性別をお選びください。",
+                    type: "radio",
+                    required: true,
+                    options: [
+                        { label: "男性", value: "M" },
+                        { label: "女性", value: "F" },
+                        { label: "その他・回答しない", value: "O" }
+                    ]
+                },
+                {
+                    id: "age",
+                    title: "Q2. あなたの年代をお選びください。",
+                    type: "radio",
+                    required: true,
+                    options: [
+                        { label: "10代", value: "10s" },
+                        { label: "20代", value: "20s" },
+                        { label: "30代", value: "30s" },
+                        { label: "40代以上", value: "40plus" }
+                    ]
+                },
+                {
+                    id: "job",
+                    title: "Q3. あなたの現在のご職業をお選びください。",
+                    type: "radio",
+                    required: true,
+                    options: [
+                        { label: "大学生・大学院生", value: "univ" },
+                        { label: "専門学校生・短大生", value: "vocational" },
+                        { label: "会社員・公務員", value: "worker" },
+                        { label: "その他", value: "other" }
+                    ]
+                },
+                // ★ Q4-1の直前に挿入する説明文ブロック
+                {
+                    type: "info",
+                    text: "以下の各質問について、5（とてもそう思う）から1（全くそう思わない）の5段階でお答えください。"
+                },
+                { id: "dummy_game1", title: "Q4-1. PCゲームやスマホゲーム、eスポーツには強い関心がある。", type: "likert", required: true },
+                { id: "dummy_game2", title: "Q4-2. 友人やオンラインの仲間と協力してプレイするゲームが好きだ。", type: "likert", required: true },
+                { id: "inv_skin1",   title: "Q4-3. 私にとって、肌のケア（保湿や乾燥対策）は非常に重要である。", type: "likert", required: true },
+                { id: "inv_skin2",   title: "Q4-4. 私は、スキンケアやボディケア用品の情報に強い関心がある。", type: "likert", required: true },
+                { id: "inv_skin3",   title: "Q4-5. 日頃から、肌のカサつきや乾燥が気になることがある。", type: "likert", required: true }
+            ],
+
+            // =====================================================================
+            // 6. 後半アンケートの質問テーブル
+            // =====================================================================
+            postQuestions: [
+                // --- 1つ目（ロジカル広告）の質問群 ---
+                {
+                    id: "log_fit",
+                    adPreview: "logical",
+                    adHeaderTitle: "【1つ目の広告について】以下の広告に対する印象を、5（とてもそう思う）から1（全くそう思わない）の5段階でお答えください。",
+                    title: "直前の投稿からこの広告への流れは自然で、タイムラインに流れてきても違和感がなかった。",
+                    type: "likert",
+                    required: true
+                },
+                { id: "log_useful", title: "この広告のメッセージは説得力があり、自分にとって有益な情報だと感じた。", type: "likert", required: true },
+                { id: "log_like",   title: "この広告を見て、紹介されているボディクリームに好感を持った。", type: "likert", required: true },
+                { id: "log_cv",     title: "実際のSNSでこの広告を見かけたら、商品の詳細ページを見たいと思う。", type: "likert", required: true },
+
+                // --- 2つ目（感性的広告）の質問群 ---
+                {
+                    id: "emo_fit",
+                    adPreview: "emotional",
+                    adHeaderTitle: "【2つ目の広告について】以下の広告に対する印象を、5（とてもそう思う）から1（全くそう思わない）の5段階でお答えください。",
+                    title: "直前の投稿からこの広告への流れは自然で、タイムラインに流れてきても違和感がなかった。",
+                    type: "likert",
+                    required: true
+                },
+                { id: "emo_useful", title: "この広告のメッセージは説得力があり、自分にとって有益な情報だと感じた。", type: "likert", required: true },
+                { id: "emo_like",   title: "この広告を見て、紹介されているボディクリームに好感を持った。", type: "likert", required: true },
+                { id: "emo_cv",     title: "実際のSNSでこの広告を見かけたら、商品の詳細ページを見たいと思う。", type: "likert", required: true }
+            ]
+        };
+
+
+        // =========================================================================
+        // ★★★ 以下は自動描画・通信エンジン（書き換え不要） ★★★
+        // =========================================================================
+        const userId = "ID_" + Math.floor(100000 + Math.random() * 900000);
+        let assignedGroup = "1";
+        let firstShownId = "";
+        let clickState = { logical: 0, emotional: 0 };
+        let preAnswers = {};
+
+        // 質問テーブルの1行からHTMLを自動生成するエンジン関数
+        function renderQuestionItem(q) {
+            // 説明文（info）タイプの場合は説明カードのみを返す
+            if (q.type === "info") {
+                return `<div class="info-card">${q.text}</div>`;
+            }
+
+            const badge = q.required
+                ? `<span class="badge-req">必須</span>`
+                : `<span class="badge-opt">任意</span>`;
+            const reqAttr = q.required ? "required" : "";
+
+            // 広告プレビューの生成（設定されている場合のみ）
+            let previewHTML = "";
+            if (q.adPreview && SURVEY_DB.ads[q.adPreview]) {
+                const ad = SURVEY_DB.ads[q.adPreview];
+                previewHTML = `
+                    <div class="ad-preview-card">
+                        <div class="ad-preview-header">${q.adHeaderTitle || "対象の広告"}</div>
+                        <div class="ad-preview-box">
+                            <img src="${ad.img}" alt="広告プレビュー">
+                            <div class="ad-preview-text">${ad.caption}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let inputHTML = "";
+
+            // 1. 単一回答（ラジオボタン）
+            if (q.type === "radio") {
+                const opts = (q.options || []).map(opt => {
+                    const label = typeof opt === "object" ? opt.label : opt;
+                    const val   = typeof opt === "object" ? opt.value : opt;
+                    return `<label><input type="radio" name="${q.id}" value="${val}" ${reqAttr}> ${label}</label>`;
+                }).join("");
+                inputHTML = `<div class="option-list">${opts}</div>`;
+            }
+            // 2. 複数回答（チェックボックス）
+            else if (q.type === "checkbox") {
+                const opts = (q.options || []).map(opt => {
+                    const label = typeof opt === "object" ? opt.label : opt;
+                    const val   = typeof opt === "object" ? opt.value : opt;
+                    return `<label><input type="checkbox" name="${q.id}" value="${val}"> ${label}</label>`;
+                }).join("");
+                inputHTML = `<div class="option-list" data-checkbox-group="${q.id}" data-required="${q.required}">${opts}</div>`;
+            }
+            // 3. 5段階リッカート尺度（「5: とてもそう思う」に変更済み）
+            else if (q.type === "likert") {
+                const minLabel = q.minLabel || "1: 全くそう思わない";
+                const midLabel = q.midLabel || "3: どちらともいえない";
+                const maxLabel = q.maxLabel || "5: とてもそう思う";
+                inputHTML = `
+                    <div class="likert-scale">
+                        <label class="likert-option"><input type="radio" name="${q.id}" value="1" ${reqAttr}><span>1</span></label>
+                        <label class="likert-option"><input type="radio" name="${q.id}" value="2"><span>2</span></label>
+                        <label class="likert-option"><input type="radio" name="${q.id}" value="3"><span>3</span></label>
+                        <label class="likert-option"><input type="radio" name="${q.id}" value="4"><span>4</span></label>
+                        <label class="likert-option"><input type="radio" name="${q.id}" value="5"><span>5</span></label>
+                    </div>
+                    <div class="likert-labels">
+                        <span>${minLabel}</span><span>${midLabel}</span><span>${maxLabel}</span>
+                    </div>
+                `;
+            }
+            // 4. 自由記述（1行テキスト）
+            else if (q.type === "text") {
+                inputHTML = `<input type="text" class="text-input" name="${q.id}" placeholder="${q.placeholder || ''}" ${reqAttr}>`;
+            }
+            // 5. 自由記述（複数行テキストエリア）
+            else if (q.type === "textarea") {
+                inputHTML = `<textarea class="textarea-input" name="${q.id}" placeholder="${q.placeholder || ''}" ${reqAttr}></textarea>`;
+            }
+
+            return `
+                ${previewHTML}
+                <div class="question-card" id="card_${q.id}">
+                    <div class="question-title">${q.title}${badge}</div>
+                    ${inputHTML}
+                </div>
+            `;
         }
 
-        const currentUserId = getUserIdFromURL();
-        console.log("現在の被験者ID:", currentUserId);
+        // フォーム内の全回答を抽出・検証する汎用関数
+        function extractFormAnswers(formElement, questionList) {
+            const answers = {};
+            for (const q of questionList) {
+                if (q.type === "info") continue; // 説明文ブロックはスキップ
 
-        // 素材データの定義
-        const posts = {
-            beauty: { img: "images/post_beauty.png", user: "beauty_style_tokyo", caption: "最近お気に入りのスキンケアルーティン。毎日のケアがこれからの肌につながると思って、保湿をいちばん大事にしています。 #スキンケア #メンズ美容" },
-            game: { img: "images/post_game.png", user: "pad_lifestyle", caption: "大学の課題がひと段落したので、友達とVALORANT。最後のラウンドで連携がはまって逆転できたの、気持ちよかった! 結局「もう1戦」ってなる。 #VALORANT #ゲーム好き" }
-        };
+                if (q.type === "checkbox") {
+                    const checked = Array.from(formElement.querySelectorAll(`input[name="${q.id}"]:checked`)).map(el => el.value);
+                    if (q.required && checked.length === 0) {
+                        alert(`「${q.title}」は必須項目です。1つ以上選択してください。`);
+                        document.getElementById(`card_${q.id}`).scrollIntoView({ behavior: "smooth" });
+                        return null;
+                    }
+                    answers[q.id] = checked.join(", ");
+                } else if (q.type === "radio" || q.type === "likert") {
+                    const selected = formElement.querySelector(`input[name="${q.id}"]:checked`);
+                    answers[q.id] = selected ? selected.value : "";
+                } else {
+                    const input = formElement.querySelector(`[name="${q.id}"]`);
+                    answers[q.id] = input ? input.value.trim() : "";
+                }
+            }
+            return answers;
+        }
 
-        const ads = {
-            logical: { img: "images/ad_logical.png", caption: "【医療用レベルの2つの保湿成分配合】乾燥肌のバリア機能を根本から整える、速乾性でベタつかないボディクリーム。" },
-            emotional: { img: "images/ad_emotional.png", caption: "【自分らしく過ごす毎日へ】カサつく肌のストレスから解放。乾燥を気にせず、自由でアクティブな毎日に。" }
-        };
+        // 初期化処理
+        async function initExperiment() {
+            document.getElementById("preTitle").innerText = SURVEY_DB.meta.preTitle;
+            document.getElementById("preDescription").innerText = SURVEY_DB.meta.preDescription;
+            document.getElementById("preSubmitBtn").innerText = SURVEY_DB.meta.preButtonText;
 
-        // 4つの実験条件のペア定義
-        const conditions = [
-            { id: "Logical_Fit",      post: posts.beauty, ad: ads.logical },
-            { id: "Emotional_Fit",    post: posts.beauty, ad: ads.emotional },
-            { id: "Logical_NonFit",   post: posts.game, ad: ads.logical },
-            { id: "Emotional_NonFit", post: posts.game, ad: ads.emotional }
-        ];
+            document.getElementById("postTitle").innerText = SURVEY_DB.meta.postTitle;
+            document.getElementById("postDescription").innerText = SURVEY_DB.meta.postDescription;
+            document.getElementById("postSubmitBtn").innerText = SURVEY_DB.meta.postButtonText;
 
-        // フィッシャー・イェーツのシャッフル
+            document.getElementById("thanksTitle").innerText = SURVEY_DB.meta.thanksTitle;
+            document.getElementById("thanksDescription").innerText = SURVEY_DB.meta.thanksDescription;
+
+            document.getElementById("preQuestionsContainer").innerHTML =
+                SURVEY_DB.preQuestions.map(q => renderQuestionItem(q)).join("");
+            document.getElementById("postQuestionsContainer").innerHTML =
+                SURVEY_DB.postQuestions.map(q => renderQuestionItem(q)).join("");
+
+            if (SURVEY_DB.apiUrl && !SURVEY_DB.apiUrl.includes("ここにURL")) {
+                try {
+                    const res = await fetch(SURVEY_DB.apiUrl);
+                    const data = await res.json();
+                    assignedGroup = String(data.group);
+                } catch (e) {
+                    assignedGroup = (Math.random() < 0.5) ? "1" : "2";
+                }
+            } else {
+                assignedGroup = (Math.random() < 0.5) ? "1" : "2";
+            }
+        }
+
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -166,14 +462,29 @@
             return array;
         }
 
-        // 画面の動的生成
-        function renderFeed() {
-            const container = document.getElementById('feedContainer');
-            const shuffledConditions = shuffle([...conditions]);
+        // 前半アンケート送信 ➔ 疑似インスタ画面の生成
+        function handlePreSubmit(event) {
+            event.preventDefault();
+            const extracted = extractFormAnswers(event.target, SURVEY_DB.preQuestions);
+            if (!extracted) return;
+            preAnswers = extracted;
 
+            const group1 = [
+                { id: "G1_Beauty_Logical", post: SURVEY_DB.posts.beauty, ad: SURVEY_DB.ads.logical },
+                { id: "G1_Game_Emotional", post: SURVEY_DB.posts.game,   ad: SURVEY_DB.ads.emotional }
+            ];
+            const group2 = [
+                { id: "G2_Beauty_Emotional", post: SURVEY_DB.posts.beauty, ad: SURVEY_DB.ads.emotional },
+                { id: "G2_Game_Logical",     post: SURVEY_DB.posts.game,   ad: SURVEY_DB.ads.logical }
+            ];
+
+            const targetConditions = (assignedGroup === "1") ? group1 : group2;
+            const shuffledConditions = shuffle([...targetConditions]);
+            firstShownId = shuffledConditions[0].id;
+
+            let allHTML = "";
             shuffledConditions.forEach((cond) => {
-                // 投稿のHTML生成
-                const postHTML = `
+                allHTML += `
                     <div class="feed-item">
                         <img class="feed-image" src="${cond.post.img}" alt="投稿">
                         <div class="ui-overlay">
@@ -181,64 +492,79 @@
                             <p class="caption">${cond.post.caption}</p>
                         </div>
                     </div>
-                `;
-
-                // 広告のHTML生成
-                const adHTML = `
                     <div class="feed-item">
                         <img class="feed-image" src="${cond.ad.img}" alt="広告">
                         <div class="ui-overlay">
-                            <a href="#" class="ad-button" onclick="logClick(event, '${cond.id}')">詳しくはこちら</a>
+                            <a href="#" class="ad-button" onclick="recordAdClick(event, '${cond.ad.type}')">詳しくはこちら</a>
                             <div class="user-info"><div class="avatar"></div><span class="username">mens_skin_lab</span><span class="badge-ad">広告</span></div>
                             <p class="caption">${cond.ad.caption}</p>
                         </div>
                     </div>
                 `;
-                container.innerHTML += postHTML + adHTML;
             });
 
-            // 【追加】タイムラインの一番最後に、後半アンケートへ誘導する画面を1枚追加する
-            const finalUrl = `${NEXT_GOOGLE_FORM_URL}?${NEXT_FORM_ENTRY_USER_ID}=${currentUserId}`;
-            const finalScreenHTML = `
+            allHTML += `
                 <div class="feed-item" style="background-color: #111;">
                     <div style="text-align: center; color: white; padding: 20px;">
-                        <h3 style="margin-bottom: 20px;">ご協力ありがとうございました</h3>
-                        <p style="margin-bottom: 30px; font-size: 14px; color: #aaa;">全てのコンテンツの閲覧が終了しました。<br>最後に、広告の印象に関する短いアンケートにお答えください。</p>
-                        <a href="${finalUrl}" style="display: inline-block; background-color: #3897f0; color: white; padding: 12px 30px; border-radius: 4px; font-weight: bold; text-decoration: none;">後半のアンケートへ進む</a>
+                        <h3 style="margin-bottom: 20px;">閲覧ありがとうございました</h3>
+                        <p style="margin-bottom: 30px; font-size: 14px; color: #aaa;">
+                            全てのコンテンツの閲覧が終了しました。<br>最後に、広告の印象に関するアンケートにお答えください。
+                        </p>
+                        <button type="button" onclick="showPostSurvey()" style="background-color: #0095f6; color: white; border: none; padding: 14px 30px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">後半のアンケートへ進む</button>
                     </div>
                 </div>
             `;
-            container.innerHTML += finalScreenHTML;
+
+            document.getElementById("feedContainer").innerHTML = allHTML;
+            document.getElementById("screenPre").classList.remove("active");
+            document.getElementById("screenFeed").classList.add("active");
         }
 
-        // 【大幅改修】広告クリック時のバックグラウンドデータ送信処理
-        function logClick(event, conditionId) {
-            event.preventDefault(); // 画面遷移やリロードを一旦止める
+        function recordAdClick(event, adType) {
+            event.preventDefault();
+            clickState[adType] = 1;
+            event.target.style.pointerEvents = "none";
+            event.target.style.backgroundColor = "#555";
+            event.target.innerText = "詳細を確認しました ✓";
+        }
 
-            // 【追加】クリックされたボタンを即座に無効化し、色をグレーにして連打を防ぐ
-            event.target.style.pointerEvents = 'none';
-            event.target.style.backgroundColor = '#555';
-            event.target.innerText = '詳細を確認しました';
+        function showPostSurvey() {
+            document.getElementById("screenFeed").classList.remove("active");
+            document.getElementById("screenPost").classList.add("active");
+            window.scrollTo(0, 0);
+        }
 
-            // データの送信フォームをJavaScript上で仮想的に組み立てる
-            const formData = new FormData();
-            formData.append(FORM_ENTRY_USER_ID, currentUserId);
-            formData.append(FORM_ENTRY_CONDITION, conditionId);
+        // 後半アンケート送信 ➔ スプレッドシートへ全データ一括送信
+        function handlePostSubmit(event) {
+            event.preventDefault();
+            const postAnswers = extractFormAnswers(event.target, SURVEY_DB.postQuestions);
+            if (!postAnswers) return;
 
-            // fetch機能を使って、被験者に気づかれずに裏側（非同期）でGoogleフォームにデータを送信
-            fetch(GOOGLE_FORM_ACTION_URL, {
+            const btn = document.getElementById("postSubmitBtn");
+            btn.disabled = true;
+            btn.innerText = "送信中...";
+
+            const payload = {
+                user_id: userId,
+                group: assignedGroup,
+                first_shown: firstShownId,
+                ...preAnswers,
+                click_logical: clickState.logical,
+                click_emotional: clickState.emotional,
+                ...postAnswers
+            };
+
+            fetch(SURVEY_DB.apiUrl, {
                 method: "POST",
-                body: formData,
-                mode: "no-cors" // Google側からの返答を無視してエラーを回避する設定
-            }).then(() => {
-                console.log("ログ送信完了:", conditionId);
-                // alert("「詳しくはこちら」がクリックされました（データロギング成功）");
-            }).catch((err) => {
-                console.error("ログ送信失敗:", err);
+                body: JSON.stringify(payload),
+                mode: "no-cors"
+            }).finally(() => {
+                document.getElementById("screenPost").classList.remove("active");
+                document.getElementById("screenThanks").classList.add("active");
             });
         }
 
-        window.onload = renderFeed;
+        window.onload = initExperiment;
     </script>
 </body>
 </html>
