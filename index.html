@@ -1,3 +1,4 @@
+/*  インスタグラム広告効果シミュレーション */
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -14,7 +15,9 @@
         .screen { display: none; width: 100%; height: 100%; }
         .screen.active { display: block; }
 
+        /* ====================================================================================== */
         /* アンケート画面のスタイル */
+        /* ====================================================================================== */
         .survey-screen { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 16px 60px; }
         .survey-container { max-width: 540px; margin: 0 auto; }
         .survey-header {
@@ -98,7 +101,9 @@
         }
         .submit-btn:disabled { background-color: #aaa; }
 
+        /* ====================================================================================== */
         /* 疑似インスタ画面のスタイル */
+        /* ====================================================================================== */
         .feed-screen { background-color: #000; overflow: hidden; }
         .feed-container {
             width: 100%; height: 100%; overflow-y: scroll;
@@ -128,7 +133,9 @@
 </head>
 <body>
 
+    <!-- =================================================================================== -->
     <!-- 画面1：事前アンケート -->
+    <!-- =================================================================================== -->
     <div id="screenPre" class="screen survey-screen active">
         <div class="survey-container">
             <div class="survey-header">
@@ -142,12 +149,16 @@
         </div>
     </div>
 
+    <!-- =================================================================================== -->
     <!-- 画面2：疑似Instagramフィード -->
+    <!-- =================================================================================== -->
     <div id="screenFeed" class="screen feed-screen">
         <div class="feed-container" id="feedContainer"></div>
     </div>
 
+    <!-- =================================================================================== -->
     <!-- 画面3：事後アンケート -->
+    <!-- =================================================================================== -->
     <div id="screenPost" class="screen survey-screen">
         <div class="survey-container">
             <div class="survey-header">
@@ -161,7 +172,9 @@
         </div>
     </div>
 
+    <!-- =================================================================================== -->
     <!-- 画面4：完了画面 -->
+    <!-- =================================================================================== -->
     <div id="screenThanks" class="screen survey-screen">
         <div class="survey-container">
             <div class="survey-header" style="text-align: center; padding: 40px 20px;">
@@ -181,11 +194,11 @@
 
             // 2. 各画面のタイトル・冒頭説明文・ボタン文字の設定
             meta: {
-                preTitle: "SNSコンテンツに関するアンケート（前半）",
-                preDescription: "以下の質問にお答えいただいた後、実際のSNSを模した画面を閲覧していただきます（所要時間：約3分）。",
+                preTitle: "SNSコンテンツに関するアンケート調査",
+                preDescription: "このアンケート調査は、マーケティング分野の研究の一環として、SNS広告の有効性を検討するために行うものです。\n最初に以下の質問にお答えいただいた後、実際のSNSを模した画面を閲覧していただきます。その後、もう一度質問にお答えいただきます。\n所要時間は約3分です。\nご回答内容は、今後の商品販売促進施策の検討において参考にさせていただきます。なお、回答は統計的に処理し、個人が特定されることはありません。\nご協力をよろしくお願いいたします。\n大阪成蹊大学 経営学部 海野研究室",
                 preButtonText: "次へ（SNS画面の閲覧へ進む）",
 
-                postTitle: "表示された広告に関するアンケート（後半）",
+                postTitle: "表示された広告に関するアンケート",
                 postDescription: "先ほど画面に表示された2つのボディクリームの広告について、あなたの率直な印象をお答えください。",
                 postButtonText: "回答を送信して終了する",
 
@@ -228,7 +241,7 @@
             preQuestions: [
                 {
                     id: "gender",
-                    title: "Q1. あなたの性別をお選びください。",
+                    title: "Q1. あなたの性別をお答えください。",
                     type: "radio",
                     required: true,
                     options: [
@@ -239,25 +252,33 @@
                 },
                 {
                     id: "age",
-                    title: "Q2. あなたの年代をお選びください。",
+                    title: "Q2. あなたの年代をお答えください。",
                     type: "radio",
                     required: true,
                     options: [
                         { label: "10代", value: "10s" },
                         { label: "20代", value: "20s" },
                         { label: "30代", value: "30s" },
-                        { label: "40代以上", value: "40plus" }
+                        { label: "40代", value: "40s" },
+                        { label: "50代以上", value: "50plus" }
                     ]
                 },
                 {
                     id: "job",
-                    title: "Q3. あなたの現在のご職業をお選びください。",
+                    title: "Q3. あなたの現在のご職業をお答えください。",
                     type: "radio",
                     required: true,
                     options: [
+                        { label: "会社員（正社員）", value: "worker01" },
+                        { label: "会社員（契約・派遣社員）", value: "worker02" },
+                        { label: "パート・アルバイト", value: "worker03" },
+                        { label: "公務員（教職員を除く）", value: "worker04" },
+                        { label: "教職員", value: "teacher" },
                         { label: "大学生・大学院生", value: "univ" },
-                        { label: "専門学校生・短大生", value: "vocational" },
-                        { label: "会社員・公務員", value: "worker" },
+                        { label: "短大生・専門学校生", value: "college" },
+                        { label: "経営者・役員", value: "executive" },
+                        { label: "自営業", value: "self-emp" },
+                        { label: "専業主婦・主夫", value: "homemaker" },
                         { label: "その他", value: "other" }
                     ]
                 },
@@ -266,8 +287,8 @@
                     type: "info",
                     text: "以下の各質問について、5（とてもそう思う）から1（全くそう思わない）の5段階でお答えください。"
                 },
-                { id: "dummy_game1", title: "Q4-1. PCゲームやスマホゲーム、eスポーツには強い関心がある。", type: "likert", required: true },
-                { id: "dummy_game2", title: "Q4-2. 友人やオンラインの仲間と協力してプレイするゲームが好きだ。", type: "likert", required: true },
+                { id: "dummy_game1", title: "Q4-1. 私はPCゲームやスマホゲーム、eスポーツには強い関心がある。", type: "likert", required: true },
+                { id: "dummy_game2", title: "Q4-2. 私は友人やオンラインの仲間と協力してプレイするゲームが好きだ。", type: "likert", required: true },
                 { id: "inv_skin1",   title: "Q4-3. 私にとって、肌のケア（保湿や乾燥対策）は非常に重要である。", type: "likert", required: true },
                 { id: "inv_skin2",   title: "Q4-4. 私は、スキンケアやボディケア用品の情報に強い関心がある。", type: "likert", required: true },
                 { id: "inv_skin3",   title: "Q4-5. 日頃から、肌のカサつきや乾燥が気になることがある。", type: "likert", required: true }
@@ -441,6 +462,7 @@
             document.getElementById("postQuestionsContainer").innerHTML =
                 SURVEY_DB.postQuestions.map(q => renderQuestionItem(q)).join("");
 
+                // 以下の「"ここにURL"」は，「もし上の apiUrl が未設定（『ここにURL』という初期文字が残ったまま）だったら、通信エラーを防ぐためにアクセスをスキップする」という安全確認用のコード
             if (SURVEY_DB.apiUrl && !SURVEY_DB.apiUrl.includes("ここにURL")) {
                 try {
                     const res = await fetch(SURVEY_DB.apiUrl);
